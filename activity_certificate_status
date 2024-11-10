@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="My Certificate"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="16dp" />
+
+    <!-- Back Button -->
+    <ImageView
+        android:id="@+id/back_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_back"
+        android:contentDescription="Back"
+        android:layout_gravity="start"
+        android:padding="8dp"/>
+
+    <!-- Status Check Button -->
+
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="wrap_content"
+        android:layout_height="134dp"
+        app:srcCompat="@drawable/feedback" />
+
+    <Button
+        android:id="@+id/button_check_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Check Certificate Status"
+        android:layout_marginTop="20dp"/>
+
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:layout_marginTop="20dp"/>
+
+    <!-- Certificate Download Buttons -->
+    <Button
+        android:id="@+id/button_download_certificate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Download Certificate"
+        android:visibility="gone"
+        android:layout_marginTop="20dp"/>
+
+    <Button
+        android:id="@+id/button_download_internship_certificate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Download Internship Certificate"
+        android:visibility="gone"
+        android:layout_marginTop="10dp"/>
+
+    <Button
+        android:id="@+id/button_download_assn_certificate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Download Assignment Certificate"
+        android:visibility="gone"
+        android:layout_marginTop="10dp"/>
+
+    <Button
+        android:id="@+id/button_download_lor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Download LOR"
+        android:visibility="gone"
+        android:layout_marginTop="10dp"/>
+
+</LinearLayout>
