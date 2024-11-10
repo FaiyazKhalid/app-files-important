@@ -1,0 +1,208 @@
+package com.advocatepedia.search
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import okhttp3.*
+import org.json.JSONObject
+import java.io.IOException
+
+class MyCertificates : AppCompatActivity() {
+
+
+    private lateinit var buttonCheckStatus: Button
+    private lateinit var buttonDownloadCertificate: Button
+    private lateinit var buttonDownloadInternship: Button
+    private lateinit var buttonDownloadAssn: Button
+    private lateinit var buttonDownloadLOR: Button
+    private lateinit var progressBar: ProgressBar
+    private lateinit var button_back: ImageView
+
+
+    @SuppressLint("MissingInflatedId")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_certificate_status)
+
+        button_back = findViewById(R.id.back_button)
+        buttonCheckStatus = findViewById(R.id.button_check_status)
+        buttonDownloadCertificate = findViewById(R.id.button_download_certificate)
+        buttonDownloadInternship = findViewById(R.id.button_download_internship_certificate)
+        buttonDownloadAssn = findViewById(R.id.button_download_assn_certificate)
+        buttonDownloadLOR = findViewById(R.id.button_download_lor)
+        progressBar = findViewById(R.id.progressBar)
+
+
+
+        buttonCheckStatus.setOnClickListener {
+            val sharedPreferences = getSharedPreferences("com.advocatepedia.search", Context.MODE_PRIVATE)
+            val wiki_user = sharedPreferences.getString("wiki_user", null)
+            val userText = wiki_user
+            if (userText != null) {
+                if (userText.isNotEmpty()) {
+                    checkCertificateStatus(userText)
+                } else {
+                    Toast.makeText(this, "Please enter User Text", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        button_back.setOnClickListener {
+            val intent = Intent(this@MyCertificates, com.advocatepedia.search.DashboardActivity::class.java)
+            startActivity(intent)
+        }
+        val sharedPreferences = getSharedPreferences("com.advocatepedia.search", Context.MODE_PRIVATE)
+        val username = sharedPreferences.getString("username", null)
+
+        // Define download button actions
+        buttonDownloadInternship.setOnClickListener { openCertificateUrl("https://internship.advocatepedia.com/certificates/award/internshipcertificate/$username.pdf") }
+        buttonDownloadAssn.setOnClickListener { openCertificateUrl("https://internship.advocatepedia.com/certificates/award/assncertificate/$username.pdf") }
+        buttonDownloadLOR.setOnClickListener { openCertificateUrl("https://internship.advocatepedia.com/certificates/award/recommendation/$username.pdf") }
+
+        buttonDownloadCertificate.setOnClickListener {
+            // Show the progress bar while downloading
+            progressBar.visibility = View.VISIBLE
+
+            // Initiate the download process without redirecting
+            Toast.makeText(this, "Download initiated...", Toast.LENGTH_SHORT).show()
+
+            // Define the URL for the certificate
+            val url = "https://internship.advocatepedia.com/certificates/app-icertificate.php?uname=$username"
+
+            // Use OkHttp to send a GET request to the server without opening a browser
+            val client = OkHttpClient()
+            val request = Request.Builder()
+                .url(url)
+                .get()
+                .build()
+
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    runOnUiThread {
+                        // Hide the progress bar on failure
+                        progressBar.visibility = View.GONE
+                        Toast.makeText(this@MyCertificates, "Failed to connect to the server", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    if (response.isSuccessful) {
+                        runOnUiThread {
+                            // Hide the progress bar and show success message
+                            progressBar.visibility = View.GONE
+                            Toast.makeText(this@MyCertificates, "Certificate generated successfully", Toast.LENGTH_SHORT).show()
+                            // Trigger file existence check after generating certificate
+                            if (username != null) {
+                                checkFileExistence(username)
+                            }
+                        }
+                    } else {
+                        runOnUiThread {
+                            // Hide the progress bar and show error message
+                            progressBar.visibility = View.GONE
+                            Toast.makeText(this@MyCertificates, "Error generating certificate", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            })
+        }
+    }
+
+    private fun checkCertificateStatus(userText: String) {
+        val url = "https://internship.advocatepedia.com/android/GrantCertificate.php?userText=$userText"  // Replace with your PHP endpoint
+
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(this@MyCertificates, "Failed to connect to the server", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseData = response.body()?.string()
+                if (response.isSuccessful && responseData != null) {
+                    try {
+                        val json = JSONObject(responseData)
+                        val status = json.optString("status")
+                        val eligibleStatus = json.optString("eligible_status")
+
+                        runOnUiThread {
+                            if (status == "success") {
+                                if (eligibleStatus == "yes") {
+                                    // Show certificate download buttons
+                                    buttonDownloadCertificate.visibility = View.VISIBLE
+                                    checkFileExistence(userText)
+                                    Toast.makeText(this@MyCertificates, "You are eligible to download the certificate.", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    // Hide buttons if not eligible
+                                    buttonDownloadInternship.visibility = View.GONE
+                                    buttonDownloadAssn.visibility = View.GONE
+                                    buttonDownloadLOR.visibility = View.GONE
+                                    buttonDownloadCertificate.visibility = View.GONE
+                                    Toast.makeText(this@MyCertificates, "You are not eligible to download the certificate.", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(this@MyCertificates, "Error: ${json.optString("message")}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        runOnUiThread {
+                            Toast.makeText(this@MyCertificates, "Failed to parse response", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    runOnUiThread {
+                        Toast.makeText(this@MyCertificates, "Server error occurred", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
+    }
+
+    private fun checkFileExistence(username: String) {
+        // Check if the files exist for internship, assn, and LOR certificates
+        checkIfFileExists("https://internship.advocatepedia.com/certificates/award/internshipcertificate/$username.pdf", buttonDownloadInternship)
+        checkIfFileExists("https://internship.advocatepedia.com/certificates/award/assncertificate/$username.pdf", buttonDownloadAssn)
+        checkIfFileExists("https://internship.advocatepedia.com/certificates/award/recommendation/$username.pdf", buttonDownloadLOR)
+    }
+
+    private fun checkIfFileExists(url: String, button: Button) {
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).head().build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // File does not exist or network error
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                runOnUiThread {
+                    if (response.isSuccessful) {
+                        button.visibility = View.VISIBLE
+                    } else {
+                        button.visibility = View.GONE
+                    }
+                }
+            }
+        })
+    }
+
+    private fun openCertificateUrl(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        startActivity(intent)
+    }
+}
